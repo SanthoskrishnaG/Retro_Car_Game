@@ -1,0 +1,67 @@
+{
+  "name": "Level 4 \u2014 Mountain Road",
+  "description": "Narrow mountain pass with pine forests, aggressive lane changers, and steep switchbacks.",
+  "road_width": 170,
+  "lanes": 3,
+  "target_distance": 7000.0,
+  "traffic_density": 1.2,
+  "enemy_speed_multiplier": 1.2,
+  "environment": "mountain",
+  "weather": "clear",
+  "difficulty": "Expert",
+  "fuel_availability": 0.85,
+  "powerup_frequency": 0.85,
+  "checkpoints": [
+    1800.0,
+    3600.0,
+    5400.0,
+    6800.0
+  ],
+  "target_laps": 1,
+  "segments": [
+    {
+      "length": 1200.0,
+      "curve": 0.0,
+      "road_width": 170,
+      "lanes": 3,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_pine_tree"
+    },
+    {
+      "length": 1300.0,
+      "curve": 0.6,
+      "road_width": 170,
+      "lanes": 3,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_rock"
+    },
+    {
+      "length": 1400.0,
+      "curve": -0.65,
+      "road_width": 170,
+      "lanes": 3,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_rock",
+      "scenery_right": "scenery_pine_tree"
+    },
+    {
+      "length": 1300.0,
+      "curve": 0.4,
+      "road_width": 170,
+      "lanes": 3,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_grandstand"
+    }
+  ]
+}

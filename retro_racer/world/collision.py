@@ -133,39 +133,17 @@ class CollisionSystem:
                     particle_system.spawn_sparks((c1.position_x + c2.position_x) / 2, (c1.position_y + c2.position_y) / 2, count=6)
 
     @staticmethod
-    def process_pickups(player: PlayerCar, pickups: List[Pickup], audio_mgr, renderer):
-        """Process item collection."""
+    def process_pickups(player: PlayerCar, pickups: List[PowerUp], audio_mgr, renderer):
+        """Process item collection using polymorphic power-up application."""
         player_box = player.get_hitbox()
         for p in pickups:
             if not p.is_collected and player_box.colliderect(p.get_hitbox()):
                 p.is_collected = True
-                player.collect_pickup(p.pickup_type.value, p.amount)
-
-                # Sound & Floating notification
-                if p.pickup_type.value == "coin":
-                    audio_mgr.play_sfx("coin")
-                    renderer.add_floating_text(f"+{int(p.amount)} PTS", p.x, p.y - 12, COLOR_YELLOW)
-                elif p.pickup_type.value == "fuel":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("+FUEL", p.x, p.y - 12, COLOR_GREEN)
-                elif p.pickup_type.value == "nitro":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("+NITRO", p.x, p.y - 12, COLOR_CYAN)
-                elif p.pickup_type.value == "shield":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("SHIELD ON!", p.x, p.y - 12, COLOR_CYAN)
-                elif p.pickup_type.value == "magnet":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("MAGNET ON!", p.x, p.y - 12, COLOR_YELLOW)
-                elif p.pickup_type.value == "slowmo":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("SLOW-MO!", p.x, p.y - 12, COLOR_CYAN)
-                elif p.pickup_type.value == "2x":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("2X SCORE!", p.x, p.y - 12, COLOR_YELLOW)
-                elif p.pickup_type.value == "wrench":
-                    audio_mgr.play_sfx("pickup")
-                    renderer.add_floating_text("+REPAIR", p.x, p.y - 12, COLOR_GREEN)
+                msg, sfx, col = p.apply(player)
+                if sfx:
+                    audio_mgr.play_sfx(sfx)
+                if msg:
+                    renderer.add_floating_text(msg, p.x, p.y - 12, col)
 
     @staticmethod
     def process_hazards(player: PlayerCar, hazards: List[Hazard], audio_mgr, particle_system, camera, renderer):

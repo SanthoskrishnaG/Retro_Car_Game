@@ -16,7 +16,7 @@ from retro_racer.ui.menu import MenuButton
 from retro_racer.systems.level_editor import TrackData
 from retro_racer.config import (
     ROAD_CENTER_X, VIRTUAL_WIDTH, VIRTUAL_HEIGHT,
-    COLOR_WHITE, COLOR_CYAN, COLOR_YELLOW, COLOR_RED, COLOR_GOLD
+    COLOR_WHITE, COLOR_CYAN, COLOR_YELLOW, COLOR_RED, COLOR_GOLD, COLOR_GREEN
 )
 
 
@@ -196,14 +196,30 @@ class PlayState(State):
         for traffic in self.spawner.traffic_cars:
             traffic.update_ai(scaled_dt, self.spawner.traffic_cars, player=self.player, road_left=road_left, road_right=road_right)
 
-        # 5. Pickups & Hazards Update
+            # Check Clean Overtakes
+            if traffic not in self.player.overtaken_cars and self.player.position_y > traffic.position_y + 12.0:
+                if abs(self.player.position_x - traffic.position_x) < 55.0:
+                    self.player.overtaken_cars.add(traffic)
+                    pts = self.player.trigger_overtake(100)
+                    self.engine.renderer.add_floating_text(f"OVERTAKE! +{pts}", self.player.position_x, self.player.position_y - 16, COLOR_GREEN)
+
+        # 5. Checkpoints Detection
+        if self.track_data and self.track_data.checkpoints:
+            for cp_dist in self.track_data.checkpoints:
+                if self.player.distance >= cp_dist and cp_dist not in self.player.cleared_checkpoints:
+                    pts = self.player.trigger_checkpoint(cp_dist, base_score=1000)
+                    self.engine.audio_mgr.play_sfx("coin")
+                    self.camera.add_shake(4.0)
+                    self.engine.renderer.add_floating_text(f"CHECKPOINT! +{pts} PTS", self.player.position_x, self.player.position_y - 24, COLOR_GOLD)
+
+        # 6. Pickups & Hazards Update
         for p in self.spawner.pickups:
             p.update(scaled_dt, self.player.position_x, self.player.position_y, magnet_active=(self.player.magnet_timer > 0))
 
-        # 6. Particle System Update
+        # 7. Particle System Update
         self.particle_system.update(scaled_dt)
 
-        # 7. Collision Detection (Player vs Enemy, Player vs Roadside, Enemy vs Enemy, Pickups, Hazards)
+        # 8. Collision Detection
         if not debug.god_mode:
             CollisionSystem.process_player_traffic(
                 self.player, self.spawner.traffic_cars,
@@ -221,13 +237,13 @@ class PlayState(State):
         CollisionSystem.process_enemy_enemy(self.spawner.traffic_cars, self.particle_system, self.engine.audio_mgr)
         CollisionSystem.process_pickups(self.player, self.spawner.pickups, self.engine.audio_mgr, self.engine.renderer)
 
-        # 8. Dynamic Camera
+        # 9. Dynamic Camera
         self.camera.update(scaled_dt, self.player.position_x, self.player.position_y, curve)
 
-        # 9. Renderer Speed Lines & Popups
+        # 10. Renderer Speed Lines & Popups
         self.engine.renderer.update(scaled_dt, is_high_speed=self.player.is_nitro_active, speed_ratio=speed_ratio)
 
-        # 10. Record Replay Frame
+        # 11. Record Replay Frame
         self.engine.replay_mgr.record_frame({
             "player_x": self.player.position_x,
             "player_y": self.player.position_y,
@@ -240,8 +256,11 @@ class PlayState(State):
             "traffic": [{"x": t.position_x, "y": t.position_y, "spr": t.sprite_name} for t in self.spawner.traffic_cars]
         })
 
-        # 11. Check Game Over Condition
-        if (self.player.fuel <= 0 or self.player.health <= 0 or self.player.is_crashed) and not debug.god_mode:
+        # 12. Check Game Over / Out of Fuel Condition
+        is_dead = self.player.health <= 0 or self.player.is_crashed
+        is_out_of_fuel = (self.player.fuel <= 0 and (self.player.speed < 5.0 or self.player.out_of_fuel_timer > 3.0))
+
+        if (is_dead or is_out_of_fuel) and not debug.god_mode:
             rpl_path = self.engine.replay_mgr.stop_recording(self.player.score, self.player.distance)
             self.engine.state_mgr.change_state("game_over",
                                               score=self.player.score,

@@ -35,6 +35,7 @@ class PlayerCar(BaseCar):
         self.fuel = FUEL_MAX
         self.nitro = 60.0
         self.is_nitro_active = False
+        self.out_of_fuel_timer = 0.0
 
         # Power-Up Active Timers
         self.shield_timer = 0.0
@@ -48,6 +49,7 @@ class PlayerCar(BaseCar):
         self.combo_count = 0
         self.combo_timer = 0.0
         self.overtaken_cars = set()
+        self.cleared_checkpoints = set()
 
         # Visuals & Input State
         self.is_braking = False
@@ -82,27 +84,37 @@ class PlayerCar(BaseCar):
 
         self.is_braking = brake
 
-        # 2. Check offroad status
+        # 2. Check Out of Fuel State
+        has_fuel = self.fuel > 0.0
+        if not has_fuel:
+            throttle = False
+            nitro_req = False
+            self.out_of_fuel_timer += dt
+            if particle_system and random_condition(dt * 8) and self.speed > 10.0:
+                particle_system.spawn_smoke(self.position_x, self.position_y + self.height // 2)
+
+        # 3. Check offroad status
         offroad = self.is_offroad(road_left, road_right)
 
-        # 3. Nitro Boost Logic
-        self.is_nitro_active = nitro_req and (self.nitro > 2.0) and (self.speed > 60.0) and not offroad
+        # 4. Nitro Boost Logic
+        self.is_nitro_active = nitro_req and has_fuel and (self.nitro > 2.0) and (self.speed > 60.0) and not offroad
         if self.is_nitro_active:
             self.nitro = max(0.0, self.nitro - NITRO_DEPLETION_RATE * dt)
+            # Nitro score bonus
+            self.score += int(10 * dt * (2 if self.double_score_timer > 0 else 1))
             if audio_mgr and random_condition(dt):
                 audio_mgr.play_sfx("nitro", volume_scale=0.3)
         else:
-            # Passive slow nitro recharge
             self.nitro = min(NITRO_MAX, self.nitro + NITRO_RECHARGE_RATE * dt)
 
-        # 4. Calculate Speed Limits & Accel Rates
+        # 5. Calculate Speed Limits & Accel Rates
         curr_max_speed = self.max_speed * (NITRO_SPEED_MULTIPLIER if self.is_nitro_active else 1.0)
         curr_accel = self.acceleration * (1.6 if self.is_nitro_active else 1.0)
 
         if offroad:
             curr_max_speed = min(curr_max_speed, PLAYER_OFFROAD_MAX_SPEED)
 
-        # 5. Acceleration & Braking with Delta Time
+        # 6. Acceleration & Braking with Delta Time
         if throttle or self.is_nitro_active:
             if self.speed < curr_max_speed:
                 self.speed = min(curr_max_speed, self.speed + curr_accel * dt)
@@ -114,33 +126,38 @@ class PlayerCar(BaseCar):
                 particle_system.spawn_skid(self.position_x - 8, self.position_y)
                 particle_system.spawn_skid(self.position_x + 8, self.position_y)
         else:
-            # Natural coasting friction
-            self.speed = max(0.0, self.speed - self.friction * dt)
+            # Natural coasting friction (stronger deceleration when out of fuel)
+            friction_rate = self.friction * (1.8 if not has_fuel else 1.0)
+            self.speed = max(0.0, self.speed - friction_rate * dt)
 
         # Offroad extra deceleration penalty
         if offroad and self.speed > PLAYER_OFFROAD_MAX_SPEED:
             self.speed = max(PLAYER_OFFROAD_MAX_SPEED, self.speed - PLAYER_OFFROAD_DECEL * dt)
 
-        # 6. Steering & Lateral Velocity Integration
+        # 7. Steering & Lateral Velocity Integration
         target_lateral_vel = steer_input * self.steering_speed
-        # Frame-rate independent exponential smoothing for lateral drift
         smooth_rate = min(1.0, 10.0 * dt)
         self.velocity_x = (self.velocity_x * (1.0 - smooth_rate)) + (target_lateral_vel * smooth_rate)
 
-        # Steering effectiveness scales with forward velocity
         speed_factor = min(1.0, self.speed / 60.0)
         self.position_x += self.velocity_x * speed_factor * dt
 
         # Forward velocity
         self.velocity_y = self.speed
         self.position_y += self.velocity_y * dt
-        self.distance += (self.speed * dt) / 50.0
 
-        # 7. Fuel Consumption
-        fuel_loss = (FUEL_DEPLETION_BASE + (self.speed * FUEL_DEPLETION_SPEED_SCALE)) * (1.0 / self.fuel_efficiency) * dt
-        self.fuel = max(0.0, self.fuel - fuel_loss)
+        # Distance & Speed Score Progression
+        meters_delta = (self.speed * dt) / 50.0
+        self.distance += meters_delta
+        speed_bonus = int((self.speed / 80.0) * meters_delta * (2 if self.double_score_timer > 0 else 1))
+        self.score += speed_bonus
 
-        # 8. Update Power-Up Timers
+        # 8. Fuel Consumption
+        if has_fuel and self.speed > 5.0:
+            fuel_loss = (FUEL_DEPLETION_BASE + (self.speed * FUEL_DEPLETION_SPEED_SCALE)) * (1.0 / self.fuel_efficiency) * dt
+            self.fuel = max(0.0, self.fuel - fuel_loss)
+
+        # 9. Update Power-Up Timers
         if self.shield_timer > 0:
             self.shield_timer = max(0.0, self.shield_timer - dt)
         if self.magnet_timer > 0:
@@ -150,51 +167,50 @@ class PlayerCar(BaseCar):
         if self.double_score_timer > 0:
             self.double_score_timer = max(0.0, self.double_score_timer - dt)
 
-        # 9. Update Combo Timer
+        # 10. Update Combo Timer
         if self.combo_timer > 0:
             self.combo_timer -= dt
             if self.combo_timer <= 0:
                 self.combo_count = 0
 
-        # 10. Oil Spin Update
+        # 11. Oil Spin Update
         self.update_spin(dt)
 
-        # 11. Particle Emitters (Nitro jet fire & exhaust smoke)
+        # 12. Particle Emitters
         if particle_system:
             if self.is_nitro_active:
                 particle_system.spawn_nitro_flame(self.position_x, self.position_y + self.height // 2)
             elif self.speed > 40.0 and random_condition(dt * 15):
                 particle_system.spawn_smoke(self.position_x - 6, self.position_y + self.height // 2)
 
-    def trigger_near_miss(self, base_score: int = 150) -> int:
-        """Trigger near miss combo reward."""
+    def trigger_near_miss(self, base_score: int = 250) -> int:
+        """Trigger near miss combo reward (+250 base)."""
         self.combo_count += 1
         self.combo_timer = 2.5
         self.nitro = min(NITRO_MAX, self.nitro + 12.0)
         mult = 2 if self.double_score_timer > 0 else 1
-        pts = (base_score + (self.combo_count - 1) * 50) * mult
+        pts = (base_score + (self.combo_count - 1) * 60) * mult
         self.score += pts
         return pts
 
-    def collect_pickup(self, pickup_type: str, amount: float = 0.0):
-        """Handle power-up collection."""
-        if pickup_type == "fuel":
-            self.fuel = min(FUEL_MAX, self.fuel + amount)
-        elif pickup_type == "nitro":
-            self.nitro = min(NITRO_MAX, self.nitro + amount)
-        elif pickup_type == "coin":
-            mult = 2 if self.double_score_timer > 0 else 1
-            self.score += int(amount * mult)
-        elif pickup_type == "shield":
-            self.shield_timer = SHIELD_DURATION
-        elif pickup_type == "magnet":
-            self.magnet_timer = MAGNET_DURATION
-        elif pickup_type == "slowmo":
-            self.slowmo_timer = SLOW_MO_DURATION
-        elif pickup_type == "2x":
-            self.double_score_timer = DOUBLE_SCORE_DURATION
-        elif pickup_type == "wrench":
-            self.health = min(self.max_health, self.health + amount)
+    def trigger_overtake(self, base_score: int = 100) -> int:
+        """Trigger clean overtake reward (+100 base)."""
+        self.combo_count += 1
+        self.combo_timer = 2.5
+        mult = 2 if self.double_score_timer > 0 else 1
+        pts = (base_score + (self.combo_count - 1) * 25) * mult
+        self.score += pts
+        return pts
+
+    def trigger_checkpoint(self, checkpoint_id: int, base_score: int = 1000) -> int:
+        """Trigger checkpoint time & score reward (+1000 base)."""
+        self.cleared_checkpoints.add(checkpoint_id)
+        # Bonus fuel on checkpoint
+        self.fuel = min(FUEL_MAX, self.fuel + 25.0)
+        mult = 2 if self.double_score_timer > 0 else 1
+        pts = base_score * mult
+        self.score += pts
+        return pts
 
     def render_powerup_auras(self, surface: pygame.Surface, camera):
         """Render glowing energy aura when shield or magnet is active."""

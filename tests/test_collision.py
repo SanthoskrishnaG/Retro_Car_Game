@@ -5,7 +5,7 @@ import pygame
 from retro_racer.entities.player import PlayerCar
 from retro_racer.entities.traffic import TrafficCar, EnemyBehavior
 from retro_racer.entities.roadside import RoadsideObject
-from retro_racer.entities.pickups import Pickup, PickupType
+from retro_racer.entities.pickups import PowerUp, FuelPowerUp, PickupType
 from retro_racer.world.collision import CollisionSystem
 
 
@@ -109,7 +109,7 @@ def test_enemy_enemy_collision():
 def test_player_pickup_collision():
     player = PlayerCar(160.0, 200.0)
     player.fuel = 40.0
-    fuel_can = Pickup(160.0, 200.0, PickupType.FUEL)
+    fuel_can = FuelPowerUp(160.0, 200.0)
 
     audio = DummyAudio()
     renderer = DummyRenderer()

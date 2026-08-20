@@ -1,0 +1,78 @@
+{
+  "name": "Level 5 \u2014 Night Drive",
+  "description": "Midnight synthwave freeway with glowing skyscrapers and hyper-fast traffic.",
+  "road_width": 184,
+  "lanes": 4,
+  "target_distance": 8000.0,
+  "traffic_density": 1.35,
+  "enemy_speed_multiplier": 1.3,
+  "environment": "synthwave",
+  "weather": "clear",
+  "difficulty": "Master",
+  "fuel_availability": 0.8,
+  "powerup_frequency": 0.8,
+  "checkpoints": [
+    2000.0,
+    4000.0,
+    6000.0,
+    7800.0
+  ],
+  "target_laps": 1,
+  "segments": [
+    {
+      "length": 1400.0,
+      "curve": 0.0,
+      "road_width": 184,
+      "lanes": 4,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_billboard_retro",
+      "scenery_right": "scenery_street_lamp"
+    },
+    {
+      "length": 1200.0,
+      "curve": 0.35,
+      "road_width": 184,
+      "lanes": 4,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_billboard_nitro",
+      "scenery_right": "scenery_palm_tree"
+    },
+    {
+      "length": 1600.0,
+      "curve": -0.4,
+      "road_width": 184,
+      "lanes": 4,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_street_lamp",
+      "scenery_right": "scenery_building_1"
+    },
+    {
+      "length": 1400.0,
+      "curve": 0.2,
+      "road_width": 184,
+      "lanes": 4,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_palm_tree",
+      "scenery_right": "scenery_grandstand"
+    },
+    {
+      "length": 1800.0,
+      "curve": 0.0,
+      "road_width": 184,
+      "lanes": 4,
+      "biome": "city",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_billboard_retro",
+      "scenery_right": "scenery_street_lamp"
+    }
+  ]
+}

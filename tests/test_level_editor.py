@@ -1,4 +1,4 @@
-"""Unit tests for Level Editor, RoadManager, and Environment types."""
+"""Unit tests for Level Editor, 5 Campaign Levels, RoadManager, and .rrlevel format."""
 
 import pytest
 from pathlib import Path
@@ -13,8 +13,51 @@ def level_editor(tmp_path):
     return LevelEditor(tracks_dir=tmp_path)
 
 
+def test_five_campaign_levels_generation(level_editor):
+    tracks = level_editor.list_tracks()
+    track_names = [t.name for t in tracks]
+
+    assert any("City Rush" in name for name in track_names)
+    assert any("Green Valley" in name for name in track_names)
+    assert any("Desert Highway" in name for name in track_names)
+    assert any("Mountain Road" in name for name in track_names)
+    assert any("Night Drive" in name for name in track_names)
+
+
+def test_custom_rrlevel_save_and_load(level_editor):
+    track = TrackData(
+        name="Custom Grand Prix",
+        description="Circuit test with .rrlevel extension",
+        road_width=180,
+        lanes=4,
+        target_distance=5500.0,
+        traffic_density=0.8,
+        enemy_speed_multiplier=1.1,
+        environment="city",
+        weather="clear",
+        difficulty="Hard",
+        fuel_availability=1.0,
+        powerup_frequency=1.0,
+        checkpoints=[1500.0, 3000.0, 4500.0],
+        segments=[
+            TrackSegment(length=1200.0, curve=0.3),
+            TrackSegment(length=1500.0, curve=-0.4)
+        ]
+    )
+
+    path = level_editor.save_rrlevel(track)
+    assert path.suffix == ".rrlevel"
+    assert path.exists()
+
+    loaded = level_editor.load_track(path.name)
+    assert loaded is not None
+    assert loaded.name == "Custom Grand Prix"
+    assert loaded.target_distance == 5500.0
+    assert loaded.checkpoints == [1500.0, 3000.0, 4500.0]
+    assert len(loaded.segments) == 2
+
+
 def test_environment_themes_and_presets():
-    # Verify all required road biomes
     for biome in ["city", "countryside", "desert", "mountain", "night", "rain", "synthwave"]:
         theme = get_environment_theme(biome)
         assert theme is not None
@@ -26,7 +69,7 @@ def test_road_manager_segments_and_boundaries():
     track = TrackData(
         name="Rain Mountain Pass",
         description="Twisty mountain in rain",
-        biome="rain",
+        environment="rain",
         target_laps=1,
         difficulty="Hard",
         segments=[
@@ -44,7 +87,6 @@ def test_road_manager_segments_and_boundaries():
 
 
 def test_deterministic_enemy_traffic_ai_seeding():
-    # Two enemies with same seed must make identical decisions
     t1 = TrafficCar(160.0, 300.0, EnemyBehavior.LANE_CHANGER, lane_idx=1, seed=42)
     t2 = TrafficCar(160.0, 300.0, EnemyBehavior.LANE_CHANGER, lane_idx=1, seed=42)
 
@@ -52,7 +94,6 @@ def test_deterministic_enemy_traffic_ai_seeding():
     assert t1.lane_change_timer == t2.lane_change_timer
     assert t1.health == t2.health
 
-    # Step AI 10 frames
     for _ in range(10):
         t1.update_ai(0.05, [t1])
         t2.update_ai(0.05, [t2])

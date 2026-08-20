@@ -5,7 +5,7 @@ from typing import List, Tuple, Optional
 import pygame
 
 from retro_racer.entities.traffic import TrafficCar, EnemyBehavior
-from retro_racer.entities.pickups import Pickup, PickupType, Hazard, HazardType
+from retro_racer.entities.pickups import PowerUp, create_powerup, PickupType, Hazard, HazardType
 from retro_racer.entities.roadside import RoadsideObject
 from retro_racer.world.road import RoadManager
 from retro_racer.config import (
@@ -124,7 +124,7 @@ class WorldSpawner:
         weights = [0.38, 0.22, 0.16, 0.05, 0.05, 0.05, 0.05, 0.04]
         ptype = self.rng.choices(pickup_types, weights=weights, k=1)[0]
 
-        self.pickups.append(Pickup(spawn_x, spawn_y, ptype))
+        self.pickups.append(create_powerup(ptype, spawn_x, spawn_y))
 
     def _spawn_hazard(self, player_y: float):
         """Spawn an oil slick or cone hazard."""
