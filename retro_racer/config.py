@@ -109,12 +109,19 @@ MASTER_VOLUME = 0.8
 SFX_VOLUME = 0.85
 MUSIC_VOLUME = 0.65
 
-# Biomes
-BIOME_CITY_DAY = "city_day"
-BIOME_CITY_NIGHT = "city_night"
-BIOME_SYNTHWAVE = "synthwave"
+# Road Biomes / Environments
+BIOME_CITY = "city"
+BIOME_COUNTRYSIDE = "countryside"
 BIOME_DESERT = "desert"
-BIOME_ALPINE = "alpine"
+BIOME_MOUNTAIN = "mountain"
+BIOME_NIGHT = "night"
+BIOME_RAIN = "rain"
+BIOME_SYNTHWAVE = "synthwave"
+
+# Aliases for compatibility
+BIOME_CITY_DAY = BIOME_CITY
+BIOME_CITY_NIGHT = BIOME_NIGHT
+BIOME_ALPINE = BIOME_MOUNTAIN
 
 # Default Key Bindings mapping action -> list of pygame key codes
 DEFAULT_KEYBINDINGS = {
@@ -129,4 +136,5 @@ DEFAULT_KEYBINDINGS = {
     "mute": [pygame.K_m],
     "fullscreen": [pygame.K_F11],
     "debug": [pygame.K_F3],
+    "debug_boundaries": [pygame.K_F4],
 }

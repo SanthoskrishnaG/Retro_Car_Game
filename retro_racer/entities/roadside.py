@@ -12,8 +12,19 @@ class RoadsideObject:
         self.y = float(y)
         self.sprite_name = sprite_name
         self.side = side
-        self.width = 48
-        self.height = 56
+        self.width = 32
+        self.height = 36
+
+    def get_hitbox(self) -> pygame.Rect:
+        """Collision hitbox for roadside obstacles (tree trunks, lamp posts, rocks)."""
+        trunk_w = 16
+        trunk_h = 18
+        return pygame.Rect(
+            int(self.x - trunk_w / 2),
+            int(self.y - trunk_h / 2),
+            trunk_w,
+            trunk_h
+        )
 
     def render(self, surface: pygame.Surface, camera, asset_pipeline):
         sx, sy = camera.world_to_screen(self.x, self.y)
@@ -25,5 +36,4 @@ class RoadsideObject:
             w, h = sprite.get_size()
             surface.blit(sprite, (sx - w // 2, sy - h // 2))
         else:
-            # Fallback simple tree representation
-            pygame.draw.circle(surface, (30, 150, 60), (sx, sy), 18)
+            pygame.draw.circle(surface, (30, 150, 60), (sx, sy), 14)

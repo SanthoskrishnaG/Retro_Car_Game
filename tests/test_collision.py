@@ -1,9 +1,11 @@
-"""Unit tests for collision geometry, hitbox math, and near-miss detection."""
+"""Unit tests for collision geometry, roadside crashes, enemy vs enemy, and near-miss detection."""
 
 import pytest
 import pygame
 from retro_racer.entities.player import PlayerCar
-from retro_racer.entities.traffic import TrafficCar, TrafficType
+from retro_racer.entities.traffic import TrafficCar, EnemyBehavior
+from retro_racer.entities.roadside import RoadsideObject
+from retro_racer.entities.pickups import Pickup, PickupType
 from retro_racer.world.collision import CollisionSystem
 
 
@@ -30,18 +32,18 @@ class DummyRenderer:
 
 
 def test_car_hitbox_generation():
-    car = PlayerCar(200.0, 300.0)
+    car = PlayerCar(160.0, 200.0)
     hitbox = car.get_hitbox()
     assert isinstance(hitbox, pygame.Rect)
-    assert hitbox.centerx == 200
-    assert hitbox.centery == 300
+    assert hitbox.centerx == 160
+    assert hitbox.centery == 200
 
 
 def test_direct_collision_detection():
     pygame.init()
-    player = PlayerCar(200.0, 300.0)
-    player.speed = 300.0
-    traffic = TrafficCar(200.0, 300.0, TrafficType.SEDAN)
+    player = PlayerCar(160.0, 200.0)
+    player.speed = 250.0
+    traffic = TrafficCar(160.0, 200.0, EnemyBehavior.NORMAL)
 
     audio = DummyAudio()
     particles = DummyParticles()
@@ -58,9 +60,9 @@ def test_direct_collision_detection():
 
 def test_shield_collision_protection():
     pygame.init()
-    player = PlayerCar(200.0, 300.0)
+    player = PlayerCar(160.0, 200.0)
     player.shield_timer = 5.0
-    traffic = TrafficCar(200.0, 300.0, TrafficType.SEDAN)
+    traffic = TrafficCar(160.0, 200.0, EnemyBehavior.NORMAL)
 
     audio = DummyAudio()
     particles = DummyParticles()
@@ -71,16 +73,58 @@ def test_shield_collision_protection():
         player, [traffic], audio, particles, camera, renderer
     )
     assert not crashed
-    assert player.health == 100.0  # unharmed
-    assert traffic.is_crashed      # deflected
+    assert player.health == 100.0
+    assert traffic.is_crashed
+
+
+def test_player_roadside_collision():
+    pygame.init()
+    player = PlayerCar(60.0, 200.0)
+    player.speed = 200.0
+    tree = RoadsideObject(60.0, 200.0, "scenery_oak_tree")
+
+    audio = DummyAudio()
+    particles = DummyParticles()
+    camera = DummyCamera()
+    renderer = DummyRenderer()
+
+    CollisionSystem.process_player_roadside(
+        player, [tree], audio, particles, camera, renderer
+    )
+    assert player.health < 100.0
+    assert player.speed < 200.0
+
+
+def test_enemy_enemy_collision():
+    t1 = TrafficCar(160.0, 200.0, EnemyBehavior.NORMAL)
+    t2 = TrafficCar(160.0, 200.0, EnemyBehavior.SLOW)
+    particles = DummyParticles()
+    audio = DummyAudio()
+
+    CollisionSystem.process_enemy_enemy([t1, t2], particles, audio)
+    # Positions deflected apart
+    assert t1.position_x != t2.position_x
+
+
+def test_player_pickup_collision():
+    player = PlayerCar(160.0, 200.0)
+    player.fuel = 40.0
+    fuel_can = Pickup(160.0, 200.0, PickupType.FUEL)
+
+    audio = DummyAudio()
+    renderer = DummyRenderer()
+
+    CollisionSystem.process_pickups(player, [fuel_can], audio, renderer)
+    assert fuel_can.is_collected
+    assert player.fuel > 40.0
 
 
 def test_near_miss_detection():
     pygame.init()
-    player = PlayerCar(200.0, 320.0)
-    player.speed = 350.0
-    traffic = TrafficCar(228.0, 300.0, TrafficType.SEDAN)  # close lane, slightly behind
-    traffic.speed = 200.0
+    player = PlayerCar(160.0, 220.0)
+    player.speed = 280.0
+    traffic = TrafficCar(182.0, 200.0, EnemyBehavior.NORMAL)
+    traffic.speed = 150.0
 
     audio = DummyAudio()
     particles = DummyParticles()
