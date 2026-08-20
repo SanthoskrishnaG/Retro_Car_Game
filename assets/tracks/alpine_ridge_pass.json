@@ -1,0 +1,49 @@
+{
+  "name": "Alpine Ridge Pass",
+  "description": "Narrow mountain pass with pine forests, aggressive lane changers, and steep switchbacks.",
+  "biome": "alpine",
+  "target_laps": 1,
+  "difficulty": "Expert",
+  "segments": [
+    {
+      "length": 1200.0,
+      "curve": 0.0,
+      "road_width": 250,
+      "biome": "city_day",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_pine_tree"
+    },
+    {
+      "length": 1300.0,
+      "curve": 0.6,
+      "road_width": 240,
+      "biome": "city_day",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_rock"
+    },
+    {
+      "length": 1400.0,
+      "curve": -0.65,
+      "road_width": 240,
+      "biome": "city_day",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_rock",
+      "scenery_right": "scenery_pine_tree"
+    },
+    {
+      "length": 1200.0,
+      "curve": 0.4,
+      "road_width": 260,
+      "biome": "city_day",
+      "traffic_density": 1.0,
+      "hazard_rate": 0.2,
+      "scenery_left": "scenery_pine_tree",
+      "scenery_right": "scenery_grandstand"
+    }
+  ]
+}

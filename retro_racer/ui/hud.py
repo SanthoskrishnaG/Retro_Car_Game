@@ -1,0 +1,172 @@
+"""Retro Arcade Heads-Up Display (HUD) with gauges, speedometers, and status counters."""
+
+import math
+from typing import Dict, Any, Optional
+import pygame
+
+from retro_racer.config import (
+    VIRTUAL_WIDTH, VIRTUAL_HEIGHT, COLOR_WHITE, COLOR_YELLOW, COLOR_CYAN,
+    COLOR_RED, COLOR_GREEN, COLOR_GOLD, NITRO_MAX, FUEL_MAX
+)
+from retro_racer.entities.player import PlayerCar
+
+
+class HUD:
+    """Renders gauges, speed dial, score, combo popups, and active buffs."""
+
+    def __init__(self):
+        pygame.font.init()
+        self.font_large = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 22)
+        self.font_mid = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 14)
+        self.font_tiny = pygame.font.SysFont("Consolas, Courier New", 11, bold=True)
+
+    def render(self, surface: pygame.Surface, player: PlayerCar, track_name: str, track_length: float, asset_pipeline):
+        """Render complete in-game HUD interface."""
+        # 1. Top Bar: Score & Distance
+        self._render_top_bar(surface, player)
+
+        # 2. Left Side: Fuel Gauge
+        self._render_fuel_gauge(surface, player.fuel)
+
+        # 3. Right Side: Nitro Boost Gauge
+        self._render_nitro_gauge(surface, player.nitro, player.is_nitro_active)
+
+        # 4. Bottom Right: Arcade Speedometer
+        self._render_speedometer(surface, player.speed)
+
+        # 5. Top Right: Power-Up Badges
+        self._render_powerup_badges(surface, player, asset_pipeline)
+
+        # 6. Bottom Center: Track Distance Progress Bar
+        self._render_progress_bar(surface, player.y, track_length)
+
+    def _render_top_bar(self, surface: pygame.Surface, player: PlayerCar):
+        # Header banner
+        header_surf = pygame.Surface((VIRTUAL_WIDTH, 44), pygame.SRCALPHA)
+        header_surf.fill((10, 12, 20, 200))
+        surface.blit(header_surf, (0, 0))
+        pygame.draw.line(surface, (0, 220, 255), (0, 44), (VIRTUAL_WIDTH, 44), 1)
+
+        # Score
+        score_lbl = self.font_tiny.render("SCORE", True, (160, 170, 190))
+        score_val = self.font_large.render(f"{player.score:07d}", True, COLOR_GOLD)
+        surface.blit(score_lbl, (14, 4))
+        surface.blit(score_val, (14, 16))
+
+        # Multiplier indicator
+        if player.double_score_timer > 0:
+            mult_txt = self.font_tiny.render("2X BONUS!", True, COLOR_YELLOW)
+            surface.blit(mult_txt, (130, 22))
+
+        # Distance
+        dist_lbl = self.font_tiny.render("DISTANCE", True, (160, 170, 190))
+        dist_val = self.font_large.render(f"{player.distance:.0f} M", True, COLOR_WHITE)
+        surface.blit(dist_lbl, (VIRTUAL_WIDTH - 120, 4))
+        surface.blit(dist_val, (VIRTUAL_WIDTH - 120, 16))
+
+        # Combo display (if combo active)
+        if player.combo_count > 1 and player.combo_timer > 0:
+            combo_surf = self.font_mid.render(f"COMBO x{player.combo_count}", True, COLOR_CYAN)
+            surface.blit(combo_surf, (VIRTUAL_WIDTH // 2 - combo_surf.get_width() // 2, 16))
+
+    def _render_fuel_gauge(self, surface: pygame.Surface, fuel: float):
+        # Fuel vertical meter on left edge
+        gx, gy, gw, gh = 12, 60, 16, 120
+        # Background
+        pygame.draw.rect(surface, (20, 25, 35), (gx, gy, gw, gh))
+        pygame.draw.rect(surface, (70, 80, 100), (gx, gy, gw, gh), width=1)
+
+        # Fuel fill
+        pct = max(0.0, min(1.0, fuel / FUEL_MAX))
+        fill_h = int(gh * pct)
+        fill_y = gy + (gh - fill_h)
+
+        col = COLOR_GREEN if pct > 0.35 else (COLOR_YELLOW if pct > 0.18 else COLOR_RED)
+        if fill_h > 0:
+            pygame.draw.rect(surface, col, (gx + 2, fill_y + 2, gw - 4, fill_h - 4))
+
+        # 'F' label
+        f_lbl = self.font_tiny.render("F", True, COLOR_WHITE)
+        surface.blit(f_lbl, (gx + 4, gy + 4))
+        e_lbl = self.font_tiny.render("E", True, COLOR_RED)
+        surface.blit(e_lbl, (gx + 4, gy + gh - 14))
+
+        lbl = self.font_tiny.render("FUEL", True, (180, 190, 210))
+        surface.blit(lbl, (gx - 2, gy + gh + 4))
+
+    def _render_nitro_gauge(self, surface: pygame.Surface, nitro: float, is_active: bool):
+        # Nitro vertical meter on right edge
+        gx, gy, gw, gh = VIRTUAL_WIDTH - 28, 60, 16, 120
+        pygame.draw.rect(surface, (20, 25, 35), (gx, gy, gw, gh))
+        border_col = (0, 240, 255) if is_active else (70, 80, 100)
+        pygame.draw.rect(surface, border_col, (gx, gy, gw, gh), width=1)
+
+        # Nitro fill
+        pct = max(0.0, min(1.0, nitro / NITRO_MAX))
+        fill_h = int(gh * pct)
+        fill_y = gy + (gh - fill_h)
+
+        nitro_col = (0, 230, 255) if not is_active else (255, 255, 255)
+        if fill_h > 0:
+            pygame.draw.rect(surface, nitro_col, (gx + 2, fill_y + 2, gw - 4, fill_h - 4))
+
+        n_lbl = self.font_tiny.render("N2O", True, (0, 230, 255))
+        surface.blit(n_lbl, (gx - 3, gy + gh + 4))
+
+    def _render_speedometer(self, surface: pygame.Surface, speed: float):
+        # Digital Speedometer at bottom-right
+        speed_kmh = int((speed / 500.0) * 240.0)
+        panel_w, panel_h = 100, 48
+        px = VIRTUAL_WIDTH - panel_w - 10
+        py = VIRTUAL_HEIGHT - panel_h - 10
+
+        # Card
+        card = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        card.fill((10, 15, 25, 220))
+        surface.blit(card, (px, py))
+        pygame.draw.rect(surface, (0, 220, 255), (px, py, panel_w, panel_h), width=1)
+
+        val_surf = self.font_large.render(f"{speed_kmh:03d}", True, COLOR_CYAN)
+        unit_surf = self.font_tiny.render("KM/H", True, (160, 180, 210))
+        surface.blit(val_surf, (px + 10, py + 8))
+        surface.blit(unit_surf, (px + panel_w - 38, py + 26))
+
+    def _render_powerup_badges(self, surface: pygame.Surface, player: PlayerCar, asset_pipeline):
+        # Active powerup icon bubbles top right
+        bx = VIRTUAL_WIDTH - 36
+        by = 52
+
+        active_buffs = []
+        if player.shield_timer > 0:
+            active_buffs.append(("pickup_shield", player.shield_timer, COLOR_CYAN))
+        if player.magnet_timer > 0:
+            active_buffs.append(("pickup_magnet", player.magnet_timer, COLOR_YELLOW))
+        if player.slowmo_timer > 0:
+            active_buffs.append(("pickup_slowmo", player.slowmo_timer, COLOR_CYAN))
+        if player.double_score_timer > 0:
+            active_buffs.append(("pickup_2x", player.double_score_timer, COLOR_GOLD))
+
+        for spr, timer, col in active_buffs:
+            sprite = asset_pipeline.get_surface(spr, pygame)
+            if sprite:
+                surface.blit(sprite, (bx, by))
+                t_surf = self.font_tiny.render(f"{timer:.1f}s", True, col)
+                surface.blit(t_surf, (bx - 32, by + 6))
+            by += 32
+
+    def _render_progress_bar(self, surface: pygame.Surface, current_y: float, track_length: float):
+        # Small progress bar at bottom center
+        pw, ph = 160, 6
+        px = (VIRTUAL_WIDTH - pw) // 2
+        py = VIRTUAL_HEIGHT - 18
+
+        pygame.draw.rect(surface, (25, 30, 40), (px, py, pw, ph))
+        pygame.draw.rect(surface, (70, 80, 100), (px, py, pw, ph), width=1)
+
+        progress = max(0.0, min(1.0, (current_y % track_length) / track_length))
+        fill_w = int(pw * progress)
+        if fill_w > 0:
+            pygame.draw.rect(surface, (0, 220, 255), (px, py, fill_w, ph))
+
+        # Marker dot
+        pygame.draw.circle(surface, COLOR_YELLOW, (px + fill_w, py + ph // 2), 4)
