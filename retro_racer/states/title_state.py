@@ -18,9 +18,9 @@ class TitleState(State):
     def __init__(self, engine):
         super().__init__(engine)
         pygame.font.init()
-        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 28)
-        self.font_sub = pygame.font.SysFont("Consolas, Courier New", 11, bold=True)
-        self.font_track = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 15)
+        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 18)
+        self.font_sub = pygame.font.SysFont("Consolas, Courier New", 8, bold=True)
+        self.font_track = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 11)
 
         self.buttons: List[MenuButton] = []
         self.selected_btn_idx = 0
@@ -30,18 +30,17 @@ class TitleState(State):
         self._init_menu()
 
     def _init_menu(self):
-        btn_w, btn_h = 240, 36
-        start_y = 230
-        spacing = 46
+        btn_w, btn_h = 130, 20
+        start_y = 100
+        spacing = 23
 
         options = [
             ("START RACE", "play"),
-            ("GARAGE & UPGRADES", "garage"),
-            ("TRACK LEVEL EDITOR", "editor"),
+            ("GARAGE & TUNING", "garage"),
+            ("TRACK EDITOR", "editor"),
             ("SAVED REPLAYS", "replay"),
             ("HALL OF FAME", "leaderboard"),
             ("SETTINGS", "settings"),
-            ("EXIT", "exit"),
         ]
 
         self.buttons = [
@@ -49,7 +48,7 @@ class TitleState(State):
                 pygame.Rect((VIRTUAL_WIDTH - btn_w) // 2, start_y + i * spacing, btn_w, btn_h),
                 text,
                 action_id,
-                font_size=15,
+                font_size=10,
                 primary_color=COLOR_CYAN if action_id != "play" else COLOR_YELLOW
             )
             for i, (text, action_id) in enumerate(options)
@@ -67,17 +66,17 @@ class TitleState(State):
         input_mgr = self.engine.input_handler
 
         # Keyboard Navigation
-        if input_mgr.is_action_just_pressed("up"):
+        if input_mgr.is_action_just_pressed("accelerate"):
             self.selected_btn_idx = (self.selected_btn_idx - 1) % len(self.buttons)
             self.engine.audio_mgr.play_sfx("beep")
-        elif input_mgr.is_action_just_pressed("down"):
+        elif input_mgr.is_action_just_pressed("brake"):
             self.selected_btn_idx = (self.selected_btn_idx + 1) % len(self.buttons)
             self.engine.audio_mgr.play_sfx("beep")
-        elif input_mgr.is_action_just_pressed("left"):
+        elif input_mgr.is_action_just_pressed("steer_left"):
             if self.available_tracks:
                 self.selected_track_idx = (self.selected_track_idx - 1) % len(self.available_tracks)
                 self.engine.audio_mgr.play_sfx("beep")
-        elif input_mgr.is_action_just_pressed("right"):
+        elif input_mgr.is_action_just_pressed("steer_right"):
             if self.available_tracks:
                 self.selected_track_idx = (self.selected_track_idx + 1) % len(self.available_tracks)
                 self.engine.audio_mgr.play_sfx("beep")
@@ -106,8 +105,6 @@ class TitleState(State):
             self.engine.state_mgr.change_state("leaderboard")
         elif action_id == "settings":
             self.engine.state_mgr.change_state("settings")
-        elif action_id == "exit":
-            self.engine.running = False
 
     def update(self, dt: float):
         for i, btn in enumerate(self.buttons):
@@ -119,40 +116,39 @@ class TitleState(State):
 
         # Animated retro grid lines
         t = pygame.time.get_ticks() * 0.001
-        for y in range(0, VIRTUAL_HEIGHT, 24):
+        for y in range(0, VIRTUAL_HEIGHT, 16):
             pygame.draw.line(surface, (35, 20, 55), (0, y), (VIRTUAL_WIDTH, y), 1)
 
         # Glowing Title
-        glow_pulse = math.sin(t * 4.0) * 4
         title_surf = self.font_title.render("RETRO RACER PYTHON", True, COLOR_YELLOW)
         glow_surf = self.font_title.render("RETRO RACER PYTHON", True, COLOR_MAGENTA)
         cx = VIRTUAL_WIDTH // 2 - title_surf.get_width() // 2
-        surface.blit(glow_surf, (cx + 2, 42))
-        surface.blit(title_surf, (cx, 40))
+        surface.blit(glow_surf, (cx + 1, 15))
+        surface.blit(title_surf, (cx, 14))
 
-        sub_surf = self.font_sub.render("16-BIT HIGH SPEED ARCADE ENGINE", True, COLOR_CYAN)
-        surface.blit(sub_surf, (VIRTUAL_WIDTH // 2 - sub_surf.get_width() // 2, 80))
+        sub_surf = self.font_sub.render("16-BIT RETRO ARCADE RACING ENGINE", True, COLOR_CYAN)
+        surface.blit(sub_surf, (VIRTUAL_WIDTH // 2 - sub_surf.get_width() // 2, 36))
 
         # Track Selector Card
         if self.available_tracks:
             track = self.available_tracks[self.selected_track_idx]
-            card_rect = pygame.Rect(40, 115, VIRTUAL_WIDTH - 80, 80)
+            card_rect = pygame.Rect(20, 50, VIRTUAL_WIDTH - 40, 42)
             pygame.draw.rect(surface, (20, 24, 38), card_rect)
             pygame.draw.rect(surface, (0, 220, 255), card_rect, width=1)
 
             t_lbl = self.font_sub.render("<< SELECT TRACK [LEFT / RIGHT] >>", True, (160, 180, 210))
-            surface.blit(t_lbl, (card_rect.centerx - t_lbl.get_width() // 2, card_rect.top + 8))
+            surface.blit(t_lbl, (card_rect.centerx - t_lbl.get_width() // 2, card_rect.top + 3))
 
             name_s = self.font_track.render(track.name, True, COLOR_GOLD)
-            surface.blit(name_s, (card_rect.centerx - name_s.get_width() // 2, card_rect.top + 28))
+            surface.blit(name_s, (card_rect.centerx - name_s.get_width() // 2, card_rect.top + 16))
 
             diff_s = self.font_sub.render(f"Difficulty: {track.difficulty} | Biome: {track.biome.upper()}", True, COLOR_WHITE)
-            surface.blit(diff_s, (card_rect.centerx - diff_s.get_width() // 2, card_rect.top + 54))
+            surface.blit(diff_s, (card_rect.centerx - diff_s.get_width() // 2, card_rect.top + 30))
 
         # Menu Buttons
         for btn in self.buttons:
             btn.render(surface)
 
         # Footer controls hint
-        footer = self.font_sub.render("[UP/DOWN] Select  [ENTER/SPACE] Confirm  [ESC] Back", True, (140, 150, 170))
-        surface.blit(footer, (VIRTUAL_WIDTH // 2 - footer.get_width() // 2, VIRTUAL_HEIGHT - 24))
+        footer = self.font_sub.render("[UP/DOWN] Select  [ENTER/SPACE] Confirm  [M] Mute  [F11] Fullscreen", True, (140, 150, 170))
+        surface.blit(footer, (VIRTUAL_WIDTH // 2 - footer.get_width() // 2, VIRTUAL_HEIGHT - 12))

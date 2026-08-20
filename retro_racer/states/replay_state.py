@@ -1,7 +1,7 @@
 """Replay Player State with timeline scrubbing and playback speed controls."""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 import pygame
 
 from retro_racer.engine.state_manager import State
@@ -16,13 +16,13 @@ from retro_racer.config import (
 
 
 class ReplayState(State):
-    """Replay player with timeline scrubber and speed controls."""
+    """Replay player with timeline scrubber and speed controls for 320x240 retro resolution."""
 
     def __init__(self, engine):
         super().__init__(engine)
         pygame.font.init()
-        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 20)
-        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 12, bold=True)
+        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 14)
+        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 8, bold=True)
 
         self.camera = Camera()
         self.road_system = RoadSystem()
@@ -39,16 +39,16 @@ class ReplayState(State):
     def _init_buttons(self):
         cx = VIRTUAL_WIDTH // 2
         # File selector
-        self.btn_prev_file = MenuButton(pygame.Rect(20, 48, 30, 26), "<", "prev_file", font_size=13)
-        self.btn_next_file = MenuButton(pygame.Rect(VIRTUAL_WIDTH - 50, 48, 30, 26), ">", "next_file", font_size=13)
+        self.btn_prev_file = MenuButton(pygame.Rect(14, 24, 18, 16), "<", "prev_file", font_size=10)
+        self.btn_next_file = MenuButton(pygame.Rect(VIRTUAL_WIDTH - 32, 24, 18, 16), ">", "next_file", font_size=10)
 
         # Player controls at bottom
-        self.btn_play_pause = MenuButton(pygame.Rect(cx - 95, VIRTUAL_HEIGHT - 80, 60, 28), "PLAY", "toggle_play", font_size=11)
-        self.btn_speed_slow = MenuButton(pygame.Rect(cx - 30, VIRTUAL_HEIGHT - 80, 40, 28), "0.5X", "speed_0.5", font_size=11)
-        self.btn_speed_norm = MenuButton(pygame.Rect(cx + 15, VIRTUAL_HEIGHT - 80, 40, 28), "1.0X", "speed_1.0", font_size=11)
-        self.btn_speed_fast = MenuButton(pygame.Rect(cx + 60, VIRTUAL_HEIGHT - 80, 40, 28), "2.0X", "speed_2.0", font_size=11)
+        self.btn_play_pause = MenuButton(pygame.Rect(cx - 75, VIRTUAL_HEIGHT - 38, 38, 16), "PLAY", "toggle_play", font_size=8)
+        self.btn_speed_slow = MenuButton(pygame.Rect(cx - 32, VIRTUAL_HEIGHT - 38, 28, 16), "0.5X", "speed_0.5", font_size=8)
+        self.btn_speed_norm = MenuButton(pygame.Rect(cx, VIRTUAL_HEIGHT - 38, 28, 16), "1.0X", "speed_1.0", font_size=8)
+        self.btn_speed_fast = MenuButton(pygame.Rect(cx + 32, VIRTUAL_HEIGHT - 38, 28, 16), "2.0X", "speed_2.0", font_size=8)
 
-        self.btn_back = MenuButton(pygame.Rect(cx - 80, VIRTUAL_HEIGHT - 42, 160, 30), "BACK TO MENU", "back", font_size=13, primary_color=COLOR_RED)
+        self.btn_back = MenuButton(pygame.Rect(cx - 50, VIRTUAL_HEIGHT - 18, 100, 15), "BACK TO MENU", "back", font_size=8, primary_color=COLOR_RED)
 
     def on_enter(self, **kwargs):
         self.saved_files = self.engine.replay_mgr.list_saved_replays()
@@ -66,7 +66,7 @@ class ReplayState(State):
 
     def handle_events(self, events: list):
         input_mgr = self.engine.input_handler
-        if input_mgr.is_action_just_pressed("back"):
+        if input_mgr.is_action_just_pressed("back") or input_mgr.is_action_just_pressed("pause"):
             self.engine.audio_mgr.play_sfx("beep")
             self.engine.state_mgr.change_state("title")
             return
@@ -119,7 +119,7 @@ class ReplayState(State):
 
         # Title
         t_s = self.font_title.render("SAVED REPLAY VIEWER", True, COLOR_GOLD)
-        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 14))
+        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 6))
 
         if not self.saved_files:
             no_s = self.font_mono.render("NO SAVED REPLAY FILES FOUND", True, (140, 150, 170))
@@ -129,8 +129,8 @@ class ReplayState(State):
 
         # Current File Header
         curr_file = self.saved_files[self.selected_file_idx]
-        file_s = self.font_mono.render(f"{self.selected_file_idx+1}/{len(self.saved_files)}: {curr_file.name[:28]}", True, COLOR_CYAN)
-        surface.blit(file_s, (VIRTUAL_WIDTH // 2 - file_s.get_width() // 2, 54))
+        file_s = self.font_mono.render(f"{self.selected_file_idx+1}/{len(self.saved_files)}: {curr_file.name[:22]}", True, COLOR_CYAN)
+        surface.blit(file_s, (VIRTUAL_WIDTH // 2 - file_s.get_width() // 2, 28))
 
         self.btn_prev_file.render(surface)
         self.btn_next_file.render(surface)
@@ -163,7 +163,7 @@ class ReplayState(State):
         total_frames = len(self.engine.replay_mgr.frames)
         curr_frame = self.engine.replay_mgr.current_frame
 
-        bar_x, bar_y, bar_w, bar_h = 30, VIRTUAL_HEIGHT - 115, VIRTUAL_WIDTH - 60, 10
+        bar_x, bar_y, bar_w, bar_h = 20, VIRTUAL_HEIGHT - 54, VIRTUAL_WIDTH - 40, 6
         pygame.draw.rect(surface, (20, 25, 35), (bar_x, bar_y, bar_w, bar_h))
         pygame.draw.rect(surface, (60, 70, 90), (bar_x, bar_y, bar_w, bar_h), width=1)
 
@@ -171,13 +171,13 @@ class ReplayState(State):
         fill_w = int(bar_w * pct)
         if fill_w > 0:
             pygame.draw.rect(surface, COLOR_CYAN, (bar_x, bar_y, fill_w, bar_h))
-        pygame.draw.circle(surface, COLOR_GOLD, (bar_x + fill_w, bar_y + bar_h // 2), 6)
+        pygame.draw.circle(surface, COLOR_GOLD, (bar_x + fill_w, bar_y + bar_h // 2), 4)
 
         # Telemetry HUD readout
         if frame_data:
-            telemetry = f"FRAME: {curr_frame}/{total_frames} | SPEED: {int(frame_data.get('speed',0)/500*240)}KM/H | SCORE: {frame_data.get('score', 0)}"
+            telemetry = f"FRAME: {curr_frame}/{total_frames} | SPEED: {int(frame_data.get('speed',0)/380*220)}KM/H | SCORE: {frame_data.get('score', 0)}"
             tel_s = self.font_mono.render(telemetry, True, COLOR_YELLOW)
-            surface.blit(tel_s, (VIRTUAL_WIDTH // 2 - tel_s.get_width() // 2, VIRTUAL_HEIGHT - 134))
+            surface.blit(tel_s, (VIRTUAL_WIDTH // 2 - tel_s.get_width() // 2, VIRTUAL_HEIGHT - 65))
 
         # Control Buttons
         self.btn_play_pause.render(surface)

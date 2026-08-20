@@ -93,6 +93,12 @@ class PlayState(State):
         input_mgr = self.engine.input_handler
         debug = self.engine.debug
 
+        # Restart hotkey
+        if input_mgr.is_action_just_pressed("restart"):
+            self.engine.audio_mgr.play_sfx("beep")
+            self.on_enter(self.track_data)
+            return
+
         # Pause Toggle
         if input_mgr.is_action_just_pressed("pause"):
             self.is_paused = not self.is_paused

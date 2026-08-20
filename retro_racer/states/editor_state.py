@@ -14,14 +14,14 @@ from retro_racer.config import (
 
 
 class EditorState(State):
-    """Interactive visual track editor."""
+    """Interactive visual track editor for retro 320x240 resolution."""
 
     def __init__(self, engine):
         super().__init__(engine)
         pygame.font.init()
-        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 22)
-        self.font_med = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 14)
-        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 12, bold=True)
+        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 14)
+        self.font_med = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 10)
+        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 8, bold=True)
 
         self.biomes = [BIOME_CITY_DAY, BIOME_CITY_NIGHT, BIOME_SYNTHWAVE, BIOME_DESERT, BIOME_ALPINE]
         self.current_biome_idx = 0
@@ -42,30 +42,30 @@ class EditorState(State):
 
     def _init_buttons(self):
         cx = VIRTUAL_WIDTH // 2
-        self.btn_biome = MenuButton(pygame.Rect(cx - 100, 60, 200, 28), "BIOME", "biome", font_size=13)
+        self.btn_biome = MenuButton(pygame.Rect(cx - 75, 26, 150, 18), "BIOME", "biome", font_size=9)
 
         # Segment Navigation
-        self.btn_prev_seg = MenuButton(pygame.Rect(cx - 110, 100, 30, 28), "<", "prev_seg", font_size=14)
-        self.btn_next_seg = MenuButton(pygame.Rect(cx + 80, 100, 30, 28), ">", "next_seg", font_size=14)
+        self.btn_prev_seg = MenuButton(pygame.Rect(cx - 75, 48, 20, 18), "<", "prev_seg", font_size=10)
+        self.btn_next_seg = MenuButton(pygame.Rect(cx + 55, 48, 20, 18), ">", "next_seg", font_size=10)
 
         # Segment Adjustments
-        self.btn_curve_left = MenuButton(pygame.Rect(cx - 100, 140, 95, 28), "CURVE <", "curve_sub", font_size=12)
-        self.btn_curve_right = MenuButton(pygame.Rect(cx + 5, 140, 95, 28), "CURVE >", "curve_add", font_size=12)
+        self.btn_curve_left = MenuButton(pygame.Rect(cx - 75, 82, 72, 18), "CURVE <", "curve_sub", font_size=8)
+        self.btn_curve_right = MenuButton(pygame.Rect(cx + 3, 82, 72, 18), "CURVE >", "curve_add", font_size=8)
 
-        self.btn_len_sub = MenuButton(pygame.Rect(cx - 100, 178, 95, 28), "-200m", "len_sub", font_size=12)
-        self.btn_len_add = MenuButton(pygame.Rect(cx + 5, 178, 95, 28), "+200m", "len_add", font_size=12)
+        self.btn_len_sub = MenuButton(pygame.Rect(cx - 75, 104, 72, 18), "-200m", "len_sub", font_size=8)
+        self.btn_len_add = MenuButton(pygame.Rect(cx + 3, 104, 72, 18), "+200m", "len_add", font_size=8)
 
         # Add / Remove Segments
-        self.btn_add_seg = MenuButton(pygame.Rect(cx - 100, 218, 95, 28), "+ ADD SEG", "add_seg", font_size=12, primary_color=COLOR_GREEN)
-        self.btn_del_seg = MenuButton(pygame.Rect(cx + 5, 218, 95, 28), "- DEL SEG", "del_seg", font_size=12, primary_color=COLOR_RED)
+        self.btn_add_seg = MenuButton(pygame.Rect(cx - 75, 126, 72, 18), "+ SEG", "add_seg", font_size=8, primary_color=COLOR_GREEN)
+        self.btn_del_seg = MenuButton(pygame.Rect(cx + 3, 126, 72, 18), "- SEG", "del_seg", font_size=8, primary_color=COLOR_RED)
 
         # Save & Back
-        self.btn_save = MenuButton(pygame.Rect(cx - 100, VIRTUAL_HEIGHT - 90, 200, 34), "SAVE TRACK (JSON)", "save", font_size=14, primary_color=COLOR_GOLD)
-        self.btn_back = MenuButton(pygame.Rect(cx - 100, VIRTUAL_HEIGHT - 48, 200, 34), "BACK TO MENU", "back", font_size=14, primary_color=COLOR_RED)
+        self.btn_save = MenuButton(pygame.Rect(cx - 75, VIRTUAL_HEIGHT - 38, 150, 16), "SAVE TRACK (JSON)", "save", font_size=9, primary_color=COLOR_GOLD)
+        self.btn_back = MenuButton(pygame.Rect(cx - 75, VIRTUAL_HEIGHT - 18, 150, 16), "BACK TO MENU", "back", font_size=9, primary_color=COLOR_RED)
 
     def handle_events(self, events: list):
         input_mgr = self.engine.input_handler
-        if input_mgr.is_action_just_pressed("back"):
+        if input_mgr.is_action_just_pressed("back") or input_mgr.is_action_just_pressed("pause"):
             self.engine.audio_mgr.play_sfx("beep")
             self.engine.state_mgr.change_state("title")
             return
@@ -133,28 +133,27 @@ class EditorState(State):
 
         # Title
         t_s = self.font_title.render("TRACK LEVEL EDITOR", True, COLOR_GOLD)
-        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 16))
+        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 6))
 
-        # Biome Button & label
+        # Biome Button
         biome_name = self.biomes[self.current_biome_idx].upper()
         self.btn_biome.text = f"BIOME: {biome_name}"
         self.btn_biome.render(surface)
 
         # Segment Selector
-        seg_s = self.font_med.render(f"SEGMENT {self.current_segment_idx + 1} / {len(self.segments)}", True, COLOR_WHITE)
-        surface.blit(seg_s, (VIRTUAL_WIDTH // 2 - seg_s.get_width() // 2, 106))
+        seg_s = self.font_med.render(f"SEG {self.current_segment_idx + 1} / {len(self.segments)}", True, COLOR_WHITE)
+        surface.blit(seg_s, (VIRTUAL_WIDTH // 2 - seg_s.get_width() // 2, 51))
         self.btn_prev_seg.render(surface)
         self.btn_next_seg.render(surface)
 
         # Segment Details
         curr_seg = self.segments[self.current_segment_idx]
-        curv_s = self.font_mono.render(f"Curvature: {curr_seg.curve:+.2f} ({'Straight' if curr_seg.curve == 0 else ('Right' if curr_seg.curve > 0 else 'Left')})", True, COLOR_CYAN)
-        len_s = self.font_mono.render(f"Length: {curr_seg.length:.0f} px ({(curr_seg.length/50):.0f}m)", True, COLOR_YELLOW)
-        surface.blit(curv_s, (VIRTUAL_WIDTH // 2 - curv_s.get_width() // 2, 126))
+        curv_s = self.font_mono.render(f"Curve: {curr_seg.curve:+.2f} | Len: {curr_seg.length:.0f}px ({(curr_seg.length/50):.0f}m)", True, COLOR_CYAN)
+        surface.blit(curv_s, (VIRTUAL_WIDTH // 2 - curv_s.get_width() // 2, 70))
+
         self.btn_curve_left.render(surface)
         self.btn_curve_right.render(surface)
 
-        surface.blit(len_s, (VIRTUAL_WIDTH // 2 - len_s.get_width() // 2, 164))
         self.btn_len_sub.render(surface)
         self.btn_len_add.render(surface)
 
@@ -162,32 +161,28 @@ class EditorState(State):
         self.btn_del_seg.render(surface)
 
         # Track Map Mini-Preview Box
-        preview_rect = pygame.Rect(40, 260, VIRTUAL_WIDTH - 80, 240)
+        preview_rect = pygame.Rect(30, 148, VIRTUAL_WIDTH - 60, 48)
         pygame.draw.rect(surface, (20, 26, 40), preview_rect)
         pygame.draw.rect(surface, (0, 220, 255), preview_rect, width=1)
 
-        p_lbl = self.font_mono.render("[TRACK PATH SCHEMATIC]", True, (160, 170, 190))
-        surface.blit(p_lbl, (preview_rect.centerx - p_lbl.get_width() // 2, preview_rect.top + 6))
-
-        # Draw wireframe schematic of road segments
-        start_px, start_py = preview_rect.centerx, preview_rect.bottom - 20
+        # Wireframe schematic
+        start_px, start_py = preview_rect.centerx, preview_rect.bottom - 6
         curr_px, curr_py = start_px, start_py
 
         for i, seg in enumerate(self.segments):
-            seg_len_px = (seg.length / 4000.0) * 160.0
-            next_px = curr_px + (seg.curve * 45.0)
+            seg_len_px = (seg.length / 4000.0) * 35.0
+            next_px = curr_px + (seg.curve * 22.0)
             next_py = curr_py - seg_len_px
 
             col = COLOR_GOLD if i == self.current_segment_idx else COLOR_CYAN
-            pygame.draw.line(surface, col, (int(curr_px), int(curr_py)), (int(next_px), int(next_py)), 4 if i == self.current_segment_idx else 2)
-            pygame.draw.circle(surface, COLOR_WHITE, (int(next_px), int(next_py)), 3)
+            pygame.draw.line(surface, col, (int(curr_px), int(curr_py)), (int(next_px), int(next_py)), 2)
+            pygame.draw.circle(surface, COLOR_WHITE, (int(next_px), int(next_py)), 2)
 
             curr_px, curr_py = next_px, next_py
 
-        # Status notification
         if self.status_timer > 0:
             st_s = self.font_mono.render(self.status_msg, True, COLOR_GREEN)
-            surface.blit(st_s, (VIRTUAL_WIDTH // 2 - st_s.get_width() // 2, VIRTUAL_HEIGHT - 116))
+            surface.blit(st_s, (VIRTUAL_WIDTH // 2 - st_s.get_width() // 2, VIRTUAL_HEIGHT - 50))
 
         self.btn_save.render(surface)
         self.btn_back.render(surface)

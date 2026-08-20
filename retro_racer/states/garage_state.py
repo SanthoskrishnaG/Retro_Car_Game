@@ -19,20 +19,19 @@ class GarageState(State):
         self.ui = GarageUI()
         self.profile = {}
         self.buttons = []
-        self.selected_btn_idx = 0
         self._init_buttons()
 
     def _init_buttons(self):
+        # Upgrade buttons 0 to 4
         self.buttons = [
-            # Upgrade buttons 0 to 4
-            MenuButton(pygame.Rect(VIRTUAL_WIDTH - 120, 236 + (i * 52), 80, 30), "UPGRADE", f"up_{up[0]}", font_size=12)
+            MenuButton(pygame.Rect(VIRTUAL_WIDTH - 64, 109 + (i * 23), 48, 18), "UPGRADE", f"up_{up[0]}", font_size=8)
             for i, up in enumerate(self.ui.upgrade_defs)
         ]
         # Car cycle buttons & back button
-        self.btn_prev_car = MenuButton(pygame.Rect(36, 126, 32, 32), "<", "prev_car", font_size=16)
-        self.btn_next_car = MenuButton(pygame.Rect(VIRTUAL_WIDTH - 68, 126, 32, 32), ">", "next_car", font_size=16)
-        self.btn_select_car = MenuButton(pygame.Rect(VIRTUAL_WIDTH // 2 - 60, 185, 120, 28), "EQUIP / BUY", "equip", font_size=13, primary_color=COLOR_GREEN)
-        self.btn_back = MenuButton(pygame.Rect(VIRTUAL_WIDTH // 2 - 80, VIRTUAL_HEIGHT - 45, 160, 32), "BACK TO MENU", "back", font_size=14, primary_color=COLOR_RED)
+        self.btn_prev_car = MenuButton(pygame.Rect(18, 55, 20, 20), "<", "prev_car", font_size=12)
+        self.btn_next_car = MenuButton(pygame.Rect(VIRTUAL_WIDTH - 38, 55, 20, 20), ">", "next_car", font_size=12)
+        self.btn_select_car = MenuButton(pygame.Rect(VIRTUAL_WIDTH // 2 - 40, 83, 80, 16), "SELECT / BUY", "equip", font_size=9, primary_color=COLOR_GREEN)
+        self.btn_back = MenuButton(pygame.Rect(VIRTUAL_WIDTH // 2 - 50, VIRTUAL_HEIGHT - 18, 100, 16), "BACK TO MENU", "back", font_size=9, primary_color=COLOR_RED)
 
     def on_enter(self, **kwargs):
         self._reload_profile()
@@ -48,15 +47,15 @@ class GarageState(State):
     def handle_events(self, events: list):
         input_mgr = self.engine.input_handler
 
-        if input_mgr.is_action_just_pressed("back"):
+        if input_mgr.is_action_just_pressed("back") or input_mgr.is_action_just_pressed("pause"):
             self.engine.audio_mgr.play_sfx("beep")
             self.engine.state_mgr.change_state("title")
             return
 
         # Car carousel navigation
-        if input_mgr.is_action_just_pressed("left"):
+        if input_mgr.is_action_just_pressed("steer_left"):
             self._cycle_car(-1)
-        elif input_mgr.is_action_just_pressed("right"):
+        elif input_mgr.is_action_just_pressed("steer_right"):
             self._cycle_car(1)
 
         # Mouse clicks on buttons
@@ -83,7 +82,6 @@ class GarageState(State):
                 self.engine.db.select_car(car_id)
                 self.engine.audio_mgr.play_sfx("coin")
             else:
-                # Attempt unlock
                 if self.engine.db.unlock_car(car_id, unlock_cost):
                     self.engine.db.select_car(car_id)
                     self.engine.audio_mgr.play_sfx("pickup")
@@ -92,7 +90,6 @@ class GarageState(State):
             self._reload_profile()
         elif action_id.startswith("up_"):
             up_type = action_id[3:]
-            # Calculate cost
             for ut, _, base_cost in self.ui.upgrade_defs:
                 if ut == up_type:
                     curr_lvl = self.profile.get(f"upgrade_{ut}", 0)

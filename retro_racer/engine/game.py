@@ -29,10 +29,11 @@ from retro_racer.states.game_over_state import GameOverState
 
 
 class GameEngine:
-    """Core Game Engine orchestrating window, subsystems, state machine, and main loop."""
+    """Core Game Engine orchestrating window scaling, state machine, and main loop."""
 
     def __init__(self, scale: float = DEFAULT_SCALE, headless: bool = False):
         self.scale = scale
+        self.is_fullscreen = False
         self.headless = headless
         self.running = False
         self.clock = pygame.time.Clock()
@@ -53,7 +54,7 @@ class GameEngine:
         if not headless:
             pygame.init()
             pygame.display.set_caption(GAME_TITLE)
-            self.screen = pygame.display.set_mode((self.window_w, self.window_h), pygame.DOUBLEBUF)
+            self.screen = pygame.display.set_mode((self.window_w, self.window_h), pygame.DOUBLEBUF | pygame.RESIZABLE)
 
         self.audio_mgr = AudioManager()
         self.input_handler = InputHandler()
@@ -65,6 +66,24 @@ class GameEngine:
 
         # Register States
         self._register_states()
+
+    def set_display_scale(self, scale: float):
+        """Set window resolution scaling multiple (1x, 2x, 3x, 4x)."""
+        self.scale = scale
+        self.is_fullscreen = False
+        self.window_w = int(VIRTUAL_WIDTH * scale)
+        self.window_h = int(VIRTUAL_HEIGHT * scale)
+        if self.screen and not self.headless:
+            self.screen = pygame.display.set_mode((self.window_w, self.window_h), pygame.DOUBLEBUF | pygame.RESIZABLE)
+
+    def toggle_fullscreen(self):
+        """Toggle Fullscreen mode."""
+        self.is_fullscreen = not self.is_fullscreen
+        if self.screen and not self.headless:
+            if self.is_fullscreen:
+                self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.DOUBLEBUF)
+            else:
+                self.screen = pygame.display.set_mode((self.window_w, self.window_h), pygame.DOUBLEBUF | pygame.RESIZABLE)
 
     def _register_states(self):
         self.state_mgr.register_state("title", TitleState(self))
@@ -91,9 +110,18 @@ class GameEngine:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif event.type == pygame.VIDEORESIZE:
+                    if not self.is_fullscreen and not self.headless:
+                        self.screen = pygame.display.set_mode(event.size, pygame.DOUBLEBUF | pygame.RESIZABLE)
                 self.input_handler.process_event(event, scale=self.scale)
 
             self.input_handler.update_continuous_actions()
+
+            # Global Hotkeys
+            if self.input_handler.is_action_just_pressed("fullscreen"):
+                self.toggle_fullscreen()
+            elif self.input_handler.is_action_just_pressed("mute"):
+                self.audio_mgr.toggle_mute()
 
             if self.state_mgr.current_state:
                 self.state_mgr.current_state.handle_events(events)
@@ -104,9 +132,7 @@ class GameEngine:
 
             # 4. Rendering
             if self.screen and self.state_mgr.current_state:
-                # Render state to virtual pixel canvas
                 self.state_mgr.current_state.render(self.renderer.virtual_surface)
-                # Scale up to screen with CRT scanlines post-processing
                 self.renderer.render_to_screen(self.screen)
                 pygame.display.flip()
 

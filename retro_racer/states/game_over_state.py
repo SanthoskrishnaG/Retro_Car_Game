@@ -18,9 +18,9 @@ class GameOverState(State):
     def __init__(self, engine):
         super().__init__(engine)
         pygame.font.init()
-        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 28)
-        self.font_med = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 16)
-        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 13, bold=True)
+        self.font_title = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 18)
+        self.font_med = pygame.font.SysFont("Impact, Arial Black, Trebuchet MS", 12)
+        self.font_mono = pygame.font.SysFont("Consolas, Courier New", 9, bold=True)
 
         self.score = 0
         self.distance = 0.0
@@ -34,9 +34,9 @@ class GameOverState(State):
 
     def _init_buttons(self):
         cx = VIRTUAL_WIDTH // 2
-        self.btn_retry = MenuButton(pygame.Rect(cx - 100, 360, 200, 34), "RACE AGAIN", "retry", font_size=14, primary_color=COLOR_GREEN)
-        self.btn_garage = MenuButton(pygame.Rect(cx - 100, 404, 200, 34), "GARAGE & TUNING", "garage", font_size=14, primary_color=COLOR_CYAN)
-        self.btn_menu = MenuButton(pygame.Rect(cx - 100, 448, 200, 34), "MAIN MENU", "menu", font_size=14, primary_color=COLOR_RED)
+        self.btn_retry = MenuButton(pygame.Rect(cx - 65, 162, 130, 20), "RACE AGAIN", "retry", font_size=10, primary_color=COLOR_GREEN)
+        self.btn_garage = MenuButton(pygame.Rect(cx - 65, 186, 130, 20), "GARAGE & TUNING", "garage", font_size=10, primary_color=COLOR_CYAN)
+        self.btn_menu = MenuButton(pygame.Rect(cx - 65, 210, 130, 20), "MAIN MENU", "menu", font_size=10, primary_color=COLOR_RED)
 
     def on_enter(self, score: int = 0, distance: float = 0.0, track_name: str = "City Track",
                  car_model: str = "player_red", replay_path: Optional[Path] = None, **kwargs):
@@ -46,7 +46,7 @@ class GameOverState(State):
         self.car_model = car_model
         self.replay_path = replay_path
 
-        # Credits earned: 1 credit per 10 score points + bonus for distance
+        # Credits earned
         self.credits_earned = int(score / 8.0) + int(distance / 5.0)
 
         # 1. Update Career Profile in SQLite
@@ -62,7 +62,7 @@ class GameOverState(State):
 
     def handle_events(self, events: list):
         input_mgr = self.engine.input_handler
-        if input_mgr.is_action_just_pressed("back"):
+        if input_mgr.is_action_just_pressed("back") or input_mgr.is_action_just_pressed("pause"):
             self.engine.audio_mgr.play_sfx("beep")
             self.engine.state_mgr.change_state("title")
             return
@@ -90,32 +90,32 @@ class GameOverState(State):
 
         # Title
         t_s = self.font_title.render("RACE FINISHED", True, COLOR_GOLD)
-        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 35))
+        surface.blit(t_s, (VIRTUAL_WIDTH // 2 - t_s.get_width() // 2, 12))
 
         # Results Summary Card
-        card_rect = pygame.Rect(30, 85, VIRTUAL_WIDTH - 60, 250)
+        card_rect = pygame.Rect(20, 36, VIRTUAL_WIDTH - 40, 116)
         pygame.draw.rect(surface, (18, 22, 34), card_rect)
-        pygame.draw.rect(surface, (0, 220, 255), card_rect, width=2)
+        pygame.draw.rect(surface, (0, 220, 255), card_rect, width=1)
 
         # Lines
         items = [
-            ("Track:", self.track_name, COLOR_WHITE),
+            ("Track:", self.track_name[:18], COLOR_WHITE),
             ("Final Score:", f"{self.score:,} PTS", COLOR_GOLD),
-            ("Distance Traveled:", f"{self.distance:.0f} METERS", COLOR_CYAN),
-            ("Credits Earned:", f"+${self.credits_earned:,} CR", COLOR_GREEN),
+            ("Distance:", f"{self.distance:.0f} METERS", COLOR_CYAN),
+            ("Earnings:", f"+${self.credits_earned:,} CR", COLOR_GREEN),
         ]
 
-        y = card_rect.top + 24
+        y = card_rect.top + 10
         for label, val, col in items:
             lbl_s = self.font_med.render(label, True, (170, 180, 200))
             val_s = self.font_med.render(val, True, col)
-            surface.blit(lbl_s, (card_rect.left + 20, y))
-            surface.blit(val_s, (card_rect.right - val_s.get_width() - 20, y))
-            y += 38
+            surface.blit(lbl_s, (card_rect.left + 12, y))
+            surface.blit(val_s, (card_rect.right - val_s.get_width() - 12, y))
+            y += 20
 
-        # High score saved badge
-        saved_s = self.font_mono.render("[HIGH SCORE RECORDED TO LEADERBOARD]", True, COLOR_YELLOW)
-        surface.blit(saved_s, (card_rect.centerx - saved_s.get_width() // 2, card_rect.bottom - 32))
+        # Saved badge
+        saved_s = self.font_mono.render("[HIGH SCORE RECORDED]", True, COLOR_YELLOW)
+        surface.blit(saved_s, (card_rect.centerx - saved_s.get_width() // 2, card_rect.bottom - 16))
 
         # Buttons
         self.btn_retry.render(surface)
